@@ -1,0 +1,358 @@
+
+/*
+ *  interpolation.c 
+ *  A.V. Martin  March 2015
+ *
+ *  Use GSL to perform 2D interpolation; e.g. r-theta plots
+ *
+ */
+
+#include "interpolation.h"
+
+
+
+/*
+ * 2D interpolation
+ */ 
+void interp_2D( interp_t * it ){
+
+  int i,j,k;
+  double out;
+  gsl_interp ** gi = malloc( it->nx_in * sizeof(gsl_interp*) );
+  gsl_interp_accel ** acc = malloc( it->nx_in * sizeof(gsl_interp_accel*));
+  double ** din = malloc( it->nx_in * sizeof(double*) );
+  double ** xin = malloc( it->nx_in * sizeof(double*) );
+  double ** yin = malloc( it->nx_in * sizeof(double*) );
+
+  // allocate the array of interpolation variables 
+  for(i=0;i<it->nx_in;i++){
+    gi[i] = gsl_interp_alloc ( gsl_interp_cspline, it->ny_in );
+    acc[i] = gsl_interp_accel_alloc();
+    din[i] = malloc( it->ny_in * sizeof(double) );
+    xin[i] = malloc( it->ny_in * sizeof(double) );
+    yin[i] = malloc( it->ny_in * sizeof(double) );
+  }
+
+  // loop over x values and create the splines
+  
+  for(i=0;i<it->nx_in;i++){
+    for(j=0;j<it->ny_in;j++){
+      din[i][j] = it->din[i*it->ny_in+j];
+      xin[i][j] = it->xin[i*it->ny_in+j];
+      yin[i][j] = it->yin[i*it->ny_in+j];
+    }
+
+    k = gsl_interp_init ( gi[i], yin[i], din[i], it->ny_in);
+
+  }
+
+
+  double * tempd  = malloc( it->nx_in * sizeof(double) );
+  double * xclose = malloc( it->nx_in * sizeof(double) );
+  gsl_interp * g = gsl_interp_alloc( gsl_interp_cspline, it->nx_in );
+  gsl_interp_accel * accx = gsl_interp_accel_alloc();
+
+  for(i=0;i<it->npix_out;i++){
+
+    for(j=0;j<it->nx_in;j++){
+      tempd[j] = gsl_interp_eval ( gi[j], yin[j], din[j], it->yout[i], acc[j]);
+      x_search( it->nx_in, xin[j], it->xout[i], &(xclose[j]) );
+    }
+        
+
+    k = gsl_interp_init ( g, xclose, tempd, it->ny_in );
+
+    it->dout[i] = gsl_interp_eval ( g, xclose, tempd, it->xout[i], accx);
+    
+    k = gsl_interp_accel_reset( accx );
+  }
+  
+
+  for(i=0;i<it->nx_in;i++){
+    gsl_interp_free( gi[i] );
+    gsl_interp_accel_free( acc[i] );
+    free(din[i]);
+  }
+  free(din);
+  free(gi);
+  free(acc);
+  gsl_interp_accel_free( accx );
+  gsl_interp_free( g );
+  free(tempd);
+  free(xclose);
+}
+
+
+void x_search( int nx, double * xin, double xsample,  double * xclose ){
+
+  int i;
+  int istore=0;
+
+  for (i=0;i<nx;i++){
+    if(xsample < xin[i]){
+      istore = i;
+      break;
+    }
+  }
+  
+  *xclose = xin[istore];
+
+}
+
+
+
+void polar_plot( settings * s, double * dp, double * polar_out ){
+
+  interp_t it;
+  qgrids qg;
+
+  calculate_qgrids( s, &qg );
+
+  set_interp_t_input_array_sizes(  &it, s->nx, s->nx );
+  set_interp_t_output_array_sizes( &it, s->nr, s->nth );
+
+
+  allocate_interp_t_arrays ( &it );
+
+  //xy_grids( it.nx_in, it.nx_in, it.xin, it.yin, s->cx, s->cy );
+  int cenx = s->nx/2;
+  int ceny = s->nx/2;
+  xy_grids( it.nx_in, it.nx_in, it.xin, it.yin, cenx, ceny );
+  //xy_grids_ewald( it.nx_in, it.nx_in, it.xin, it.yin,
+  //		  s->pixel_width, s->detector_z, s->wavelength,
+  //		  s->qmax );
+  /*
+  char outname[1024];
+  strcpy( outname, s->outpath );
+  strcat( outname, "/" );
+  strcat( outname, "xtest.dbin" );
+  write_dbin( outname, it.xin, s->nr*s->nr*s->nth );
+  strcpy( outname, s->outpath );
+  strcat( outname, "/" );
+  strcat( outname, "ytest.dbin" );
+  write_dbin( outname, it.yin, s->nr*s->nr*s->nth );
+  */
+
+  set_interp_t_input_data( &it, dp );
+  //polar_xy_grids( it.nx_out, it.ny_out, it.xout, it.yout );
+  polar_xy_grids_ewald( it.nx_out, it.ny_out, it.xout, it.yout, 
+			s->pixel_width, s->detector_z, s->wavelength,
+			s->qmax );
+
+
+  interp_2D( &it );
+
+  int i;
+  for(i=0;i<it.npix_out;i++){
+    polar_out[i] = it.dout[i];
+  }
+  /*
+  int j;
+  double theta;
+  for(i=0;i<s->nr;i++){
+    theta = thetaq_calc( s->qmax, s->wavelength, s->nr, i );
+    for(j=0;j<s->nth;j++){
+      polar_out[i*s->nth+j] *= sin(theta);
+    }
+  }
+  */
+  free_qgrids( &qg );
+  free_interp_t_arrays ( &it );
+}
+
+
+
+void set_interp_t_input_array_sizes( interp_t * it, int nx_in, int ny_in ){
+
+  it->nx_in = nx_in;
+  it->ny_in = ny_in;
+  it->npix_in = nx_in * ny_in;
+}
+
+
+void set_interp_t_output_array_sizes( interp_t * it, int nx_out, int ny_out ){
+
+  it->nx_out = nx_out;
+  it->ny_out = ny_out;
+  it->npix_out = nx_out * ny_out;
+}
+
+
+void allocate_interp_t_arrays ( interp_t * it ){
+
+  it->xin = malloc( it->npix_in * sizeof(double) );
+  it->yin = malloc( it->npix_in * sizeof(double) );
+  it->din = malloc( it->npix_in * sizeof(double) );
+
+  it->xout = malloc( it->npix_out * sizeof(double) );
+  it->yout = malloc( it->npix_out * sizeof(double) );
+  it->dout = malloc( it->npix_out * sizeof(double) );
+
+}
+
+
+void free_interp_t_arrays ( interp_t * it ){
+
+  free(it->xin);
+  free(it->yin);
+  free(it->din);
+
+  free(it->xout);
+  free(it->yout);
+  free(it->dout);
+
+}
+
+void set_interp_t_input_xy_arrays( interp_t * it, double * xin, double * yin ){
+  int i;
+  
+  for(i=0;i<it->npix_in;i++){
+    it->xin[i] = xin[i];
+    it->yin[i] = yin[i];
+  }
+}
+
+
+void set_interp_t_input_data( interp_t * it, double * din ){
+  int i;
+  
+  for(i=0;i<it->npix_in;i++){
+    it->din[i] = din[i];
+  }
+}
+
+
+void set_interp_t_output_arrays( interp_t * it, double * xout, double * yout ){
+  int i;
+  
+  for(i=0;i<it->npix_out;i++){
+    it->xout[i] = xout[i];
+    it->yout[i] = yout[i];
+  }
+
+}
+
+void xy_grids( int nx, int ny, double * x, double * y, int cx, int cy ){
+
+  int i,j;
+  for(i=0;i<nx;i++){
+    for(j=0;j<ny;j++){
+      x[i*ny+j] = i - cx;
+      y[i*ny+j] = j - cy;
+    }
+  }
+
+}
+
+
+void xy_grids_scaled( int nx, int ny, double dmax, double * x, double * y ){
+
+  int i,j;
+  for(i=0;i<nx;i++){
+    for(j=0;j<ny;j++){
+      x[i*ny+j] = (i - nx/2) * dmax / (double)(nx/2);
+      y[i*ny+j] = (j - ny/2) * dmax / (double)(nx/2);
+    }
+  }
+
+}
+
+// x y coordinate of each polar sampling point
+void polar_xy_grids( int nr, int nth, double * rth_x, double * rth_y ){
+
+  int i,j;
+
+  for(i=0;i<nr;i++){
+    for(j=0;j<nth;j++){
+      rth_x[i*nth+j] = i * cos( 2 * PI * j / (double) nth );
+      rth_y[i*nth+j] = i * sin( 2 * PI * j / (double) nth );
+    }
+  }
+
+}
+
+// x y coordinate of each polar sampling point
+void polar_xy_grids_ewald( int nr, int nth, double * rth_x, double * rth_y, 
+		     double pw, double dz, double wl,
+		     double qmax ){
+
+  int i,j;
+  double iscaled;
+
+  for(i=0;i<nr;i++){
+    iscaled = (dz/pw) * tan( 2.0 * asin( (qmax*i*wl)/(2.0*nr) ) );
+    //    printf("DEBUG <padfXcorr>iscaled i j %d %d %g %g %d\n", i, j, iscaled, qmax, nr);
+    for(j=0;j<nth;j++){
+
+      rth_x[i*nth+j] = iscaled * cos( 2 * PI * j / (double) nth );
+      rth_y[i*nth+j] = iscaled * sin( 2 * PI * j / (double) nth );
+    }
+  }
+
+}
+
+
+double thetaq_calc( double qmax, double wl, int nr, int i ){
+
+  double out = (PI/2.0) - asin( wl * qmax*i / (2.0*nr) ); 
+  return out;
+}
+
+void xy_grids_ewald( int nx, int ny, double * x, double * y,
+		     double pw, double dz, double wl,
+		     double qmax ){
+
+  int i,j;
+  double d, th, q;
+  double ph;
+
+  for(i=0;i<nx;i++){
+    for(j=0;j<ny;j++){
+      d = sqrt(  (i-nx/2)*(i-nx/2) + (j-ny/2)*(j-ny/2) );
+      th = atan( d * pw / dz );
+      q = 2.0 * sin(th/2.0) / wl;
+
+      if ( d>0.0 ) {
+	x[i*ny+j] = (i-nx/2) * (q/qmax) * (nx/d);
+	y[i*ny+j] = (j-ny/2) * (q/qmax) * (nx/d);
+      } else {
+	x[i*ny+j] = 0.0;
+	y[i*ny+j] = 0.0;
+      }
+
+      /*
+      if ((i-nx/2)>0){
+	ph = atan( (j-ny/2)/(double)(i-nx/2) ) + PI/2.0;
+      }	else if((i-nx/2)<0){
+	ph = atan( (j-ny/2)/(double)(i-nx/2) ) - PI/2.0;
+      } else {
+	ph = 0.0;
+      }
+
+      */
+	/*      
+      if ((i-nx/2)!=0){
+	ph = atan( (j-ny/2)/(double)(i-nx/2) );
+	if( (j-ny/2)<0 ){
+	  ph += PI;
+	}
+      }
+      else {
+	ph = 0.0;
+	
+	if ( (j-ny/2) >= 0 ){
+	  ph = 0.0;
+	}
+	else {
+	  ph = PI;
+	}
+      }
+	*/
+     
+      //      x[i*ny+j] = (nx/2) * (q * cos(ph) / qmax );
+      // y[i*ny+j] = (ny/2) * (q * sin(ph) / qmax );
+    }
+  }
+
+
+}

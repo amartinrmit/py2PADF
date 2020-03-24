@@ -1,0 +1,95 @@
+
+/*
+ *  padf.c 
+ *  A.V. Martin  March 2015
+ *
+ *  Calculate the pair-angle distribution function from a diffraction pattern
+ *
+ */
+
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include "settings.h"
+#include "io.h"
+#include "bll.h"
+
+void main(int argc, char * argv[]){
+
+  int i;
+  settings s;
+  char outname[1024];
+  char configname[1024];
+  strcpy( configname, "config.txt");
+  parse_config_name( argc, argv, configname );
+
+  //srand(time(NULL));
+
+  /*
+   *  Initialize file names, experiment parameters
+   */
+  initialize_settings( &s );
+  readConfig( configname, &s);
+
+  io_vars_t iov;
+  iov.outpath[0] = '\0';
+  //set_io_vars_t( &iov, s.outpath, s.tag );
+  strcpy( iov.outpath, s.outpath);
+  strcpy( iov.tag, s.tag);
+  printf("DEBUG iov %s\n", iov.outpath);
+  printf("DEBUG iov %s\n", iov.tag);
+  printf("DEBUG settings %s %s\n", s.outpath, s.tag);
+
+  /*
+   * allocate and read in diffraction pattern image
+   */
+  correlation_t corr;
+  allocate_correlation_t( &corr, s.nq, s.nthq );
+  correlation_t corrsig;
+  allocate_correlation_t( &corrsig, s.nq, s.nthq );
+ 
+  read_dbin( s.correlationfile, corr.data, corr.npix );
+
+  if (s.nfilterflag == 1 ){
+    read_dbin( s.correlation_sigma_file, corrsig.data, corrsig.npix );
+  } else {
+    for (i=0;i<corrsig.npix;i++){ corrsig.data[i] = 0.0; }
+  }
+
+  /*
+   *  Print settings to screen and write to log
+   */
+  writeConfig( &s );
+
+  /*
+   *  Allocate padf variables
+   */
+  correlation_t padf;
+  allocate_correlation_t( &padf, s.nr, s.nthq );
+ 
+  /*
+   * Calcualte the padf
+   */
+  padf_calc( &corr, &corrsig, &padf, s.rmax, s.qmax, s.wl, s.nl, s.blflag, s.blfilter, 
+	     s.nfilterflag, &iov );
+   
+  /*
+   *  Output correlation
+   */
+  strcpy( outname, s.outpath );
+  strcat( outname, "/" );
+  strcat( outname, s.tag );
+  strcat( outname, "_padf.dbin" );
+  write_dbin( outname, padf.data, padf.npix );
+  
+  /*
+   * free memory
+   */
+  clean_up_correlation_t( &padf );
+  clean_up_correlation_t( &corr );
+  clean_up_correlation_t( &corrsig );
+
+}

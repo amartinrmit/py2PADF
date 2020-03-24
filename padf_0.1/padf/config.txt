@@ -1,0 +1,37 @@
+#
+# Configuration file for padf
+#
+# A.V.Martin March 2015
+#
+
+#
+#-----------MANDATORY PARAMETERS----------------------------
+# (Without these the code will not work)
+#
+
+# Name of input diffraction pattern. Include the full path.
+correlationfile = path/test.dbin
+
+# path of the output directory
+outpath = /home/user/outpath
+
+# wavelength in metres
+wavelength = 1e-10
+
+# A label for the output of the simulation
+tag = name_your_simulation
+
+# number of samples for polar angle, radial q, radial r
+# nthr is currently not used
+nthq = 100; 
+nq = 100;  
+#nthr = 100; 
+nr = 100;  
+
+# number of "l" terms to calculate
+nl = 10
+
+# max values of radial q and radial r to include in calculation
+#
+qmax = 1.0;
+rmax = 1.0;

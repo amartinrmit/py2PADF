@@ -1,0 +1,72 @@
+#
+# Config file for padfpy
+#
+
+
+# path where output will be saved
+path = /Users/e38496/Work/Research/Experiments/Monash/2016/Carbon_dec16/Results/unactivated/fem/data_12.35.05_recen3_900/
+
+# tag that names the output files
+tag = carbon_dec16_unactivated_12.35.05_recen3
+
+# input
+#inputpath = /Users/e38496/Work/Research/Experiments/Monash/2016/Carbon_dec16/Results/unactivated/fem/data_12.35.05_recen2/
+#inputtag = carbon_dec16_unactivated_11.20.24_recen3
+#input_tail = _padfcorr_correlation_sum_hpfilter_zeromasked_v2.dbin
+
+
+# Flags
+dp_flag = 0
+g_flag = 1
+corr_flag = 1
+padf_flag = 1
+symmetry_flag = 0
+mask_flag = 1
+crop_flag = 1
+hpfilter_flag = 1
+units_flag = 0
+dp_shift_flag = 1
+corr_bg_calc_flag = 0
+corr_bg_sub_flag = 0
+corr_diff_flag = 1
+rebin = 2
+
+# Common variables
+samplepath = /Volumes/DataStore1/Data/Monash/Carbon_dec16/unactivated/fem/
+sampletag = 12.35.05_Spectrum_image_1.ser
+maskname = /Users/e38496/Work/Research/Experiments/Monash/2016/Carbon_dec16/masks/fem_unactivated_12.35.05_mask_inverted.bin
+wavelength = 4.17e-12
+detector_z = 0.14141
+pixelwidth = 5e-5
+#nphotons = 1e4
+beamArea = 1e-18
+nthreads = 3
+npatterns = 900
+hp_filter = 55
+lp_filter = 100
+nxcrop = 512
+nycrop = 512
+shiftx = -4
+shifty = -1
+
+
+# Correlation variables
+# (I don't know if cx and cy are really needed)
+cx = 128
+cy = 128
+nth = 402
+sym_filter = 100
+
+# PADF parameters
+nl = 30
+padf_nth = 402
+padf_nr = 256
+padf_nq = 128
+padf_qmax = 2.1758e10
+padf_rmax = 2.941e-9
+
+# PADF plotting parameters
+section1 = 1
+section2 = 3
+theta = 0
+

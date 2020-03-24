@@ -1,0 +1,150 @@
+/*
+ * Implement fourier transforms with fftw
+ * 1D
+ * Andrew V. Martin March 2015
+ */
+
+#include "fft1d.h"
+
+/*
+ *  Initialize the fftvars structure (using input values)
+ */
+void initialize_fftvars( fftvars * v, int n, char * fname ){
+
+  strcpy( fname, v->fname );
+  v->n  = n;
+  v->in  = (fftw_complex*) fftw_malloc( v->n * sizeof(fftw_complex));
+
+  fftw_setup( v ) ;
+
+}
+
+
+
+/*
+ *  Set up plans etc
+ */
+void fftw_setup( fftvars * v ){
+  
+  fftw_plan temp_plan;
+  unsigned flags;
+  int * d = malloc( sizeof(int) );
+  d[0] = v->n;
+
+  /* 
+   *  Import wisdom from a file
+   */
+  if (strcmp(v->fname,"none") != 0) {
+  
+    int a = fftw_import_wisdom_from_filename( v->fname );
+    
+    /*
+    if (a == 0){
+      printf("Wisdom file could not be read successfully %s\n", v->fname);
+    }
+    */
+  }
+
+  /*
+   *  Create the plan for a forward transform
+   */
+  temp_plan = fftw_plan_dft( 1, d,
+			    v->in, v->in, FFTW_FORWARD, FFTW_MEASURE);
+
+  v->plan_forward = temp_plan;
+
+  /*
+   *  Create the plan for an inverse transform
+   */
+  temp_plan = fftw_plan_dft( 1, d,
+			    v->in, v->in, FFTW_BACKWARD, FFTW_MEASURE);
+
+  v->plan_back = temp_plan;
+
+}
+
+
+/*
+ *  Copy an array to the fftw routines and execute the plan
+ *
+ */
+int fftw( fftvars * v, double * real, double * imag, 
+	    double * real_out, double * imag_out, int n, const int sign ){
+
+  int i;
+
+  /*
+   *  Catch incorrect input size
+   */
+  if ( n != v->n){
+    printf(" Incorrect input size %d %d\n", n, v->n );
+    return 1;
+  }
+
+  /*
+   *  put intput arrays into v
+   */
+  for (i=0;i<n;i++){
+    v->in[i][0] = real[i];
+    v->in[i][1] = imag[i];
+  }
+
+  /*
+   *  Perform the fast fourier transform
+   */
+  clock_t start, end;
+  start = clock();
+  if (sign == 1){
+    fftw_execute( v->plan_back );
+  } else if(sign == -1) {
+    fftw_execute( v->plan_forward );
+  }
+  end   = clock();
+  //printf("Time taken %f\n", (float)(end-start)/CLOCKS_PER_SEC);
+  
+
+  /*
+   *  put data back into normal array
+   */
+  if (sign == 1){
+    for (i=0;i<n;i++){
+      real_out[i] = v->in[i][0] / (float) n;
+      imag_out[i] = v->in[i][1] / (float) n;
+    }
+  } else if(sign == -1) {
+    for (i=0;i<n;i++){
+      real_out[i] = v->in[i][0];
+      imag_out[i] = v->in[i][1];
+    }
+  }
+
+
+  return 0;
+}
+
+
+/*
+ *  Clean up; destroy plan ; free arrays etc.
+ */
+void fftw_clean_up( fftvars * v ){
+
+  /* 
+   *  Import wisdom from a file
+   */
+  if (strcmp(v->fname,"none") != 0) {
+  
+    int a = fftw_export_wisdom_to_filename( v->fname );
+    
+    if (a == 0){
+      printf("Wisdom file could not be read successfully %s\n", v->fname);
+    }
+  }
+
+  /*
+   * Destroy plans and free arrays
+   */
+  fftw_destroy_plan( v->plan_forward );
+  fftw_destroy_plan( v->plan_back );
+  fftw_free( v->in );
+
+}
