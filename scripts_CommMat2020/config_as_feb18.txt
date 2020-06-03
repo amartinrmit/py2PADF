@@ -1,0 +1,72 @@
+#
+# Config file for padfpy
+#
+
+
+# path where output will be saved
+path = /Users/e38496/Work/Research/Experiments/AS/SAXS/SAXS_feb18/Results/run7_plate21_svt2_sgm5_all_npat999_nstart1000/
+
+# tag that names the output files
+tag = run7_plate21_svt2_sgm5_all_npat999_nstart1000_max70k
+
+#inputpath =  /Users/e38496/Work/Research/Experiments/AS/SAXS/SAXS_feb18/Results/scan17_syringe1_MO_LysProt_all_9_npat198_nstart0/
+#inputtag = scan17_syringe1_MO_LysProt_all_9_npat198_nstart0
+#input_tail = _padfcorr_correlation_sum_maskcorrected_filtered.dbin
+
+
+# Flags
+dp_flag = 0
+g_flag = 0
+corr_flag = 1
+padf_flag = 1
+symmetry_flag = 0
+mask_flag = 1
+crop_flag = 1
+hpfilter_flag = 0
+units_flag = 0
+dp_shift_flag = 1
+corr_bg_calc_flag = 0
+corr_bg_sub_flag = 0
+corr_diff_flag = 1
+rebin = 2
+
+# Common variables
+samplepath = /Users/e38496/Work/Research/Experiments/AS/SAXS/SAXS_feb18/Results/clustering/run7_plate21_svt2_sgm5_all/maunual_recluster/190107/
+sampletag = group0tiflist_max70000.txt
+maskname = /Users/e38496/Work/Research/Experiments/AS/SAXS/SAXS_feb18/image_2D_sums/plate4mask_dilated.tif
+wavelength = 1.033216e-10
+detector_z = 0.962478 
+pixelwidth = 0.000172
+#nphotons = 1e14
+beamArea = 6.25e-9
+nthreads = 3
+npatterns = 999
+nstart = 1000
+hp_filter = 20
+lp_filter = 64
+nxcrop = 512
+nycrop = 512
+#shiftx = -185.1
+#shifty = -182.8
+#shiftx = -185
+#shifty = -183
+shiftx = -185.6
+shifty = 55.8
+
+# Correlation variables
+# (I don't know if cx and cy are really needed)
+cx = 128
+cy = 128
+nth = 402
+sym_filter = 20
+
+# Padf Parameters
+nl = 30
+padf_nth = 402
+padf_nr = 128
+padf_nq = 128
+padf_qmax = 4.42431e8
+padf_rmax = 0.72327e-07
+#padf_rmax = 1.50286e-07
+#padf_qmax = 2.13e8
+#padf_rmax = 3.0532e-07
