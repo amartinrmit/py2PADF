@@ -2,11 +2,11 @@
 
 This Project contains code to the Pair-Angle Distribution Function (PADF) from a set of diffraction patterns. As an intermediate step it calculates the angular cross-correlation function.
 
-WARNING: This is development code. NOT intended for general release. When used correctly it works, but errors in input parameters do not produce meaningful error messages.
+WARNING: This is development code written to analyse data for specific scientific research projects. It was not intended for general release. When used correctly it works, but errors in input parameters do not produce meaningful error messages.
 
 The code is made available as a record of the software used to analyse data in the following publications:
 
-Martin et al. "..." Small 2020 (accepted)
+Martin, A.V. et al. "Detection of Ring and Adatom Defects in Activated Disordered Carbon via Fluctuation Nanobeam Electron Diffraction" Small (2020), 2000828
 
 For details about the data analysis in this publication, see DATA_ANALYSIS_STEPS file.
 
